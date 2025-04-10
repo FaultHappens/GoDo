@@ -1,4 +1,4 @@
-# godo
+# GoDo: Adventure Today
 Click a button, get a new fun challenge for the day
 
 Name: Your own adventure / Your Adventure / Adventure Today / TodVenture / GoDo : Adventure Today 
