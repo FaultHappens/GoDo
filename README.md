@@ -18,6 +18,7 @@ features:
 	- Proofs. Once they complete the adventure they would need to upload a proof, like a picture, geolocation etc. For co-op a proof might be for example some code phrase that only other person knows.
 	- Users will have a score of completed and failed adventures
 	- There also could be adventures not just for a day, but week or month. For example some things, that u need to prepare for like hike, camping, concert (buy tickets) etc	
+	- Make every adventure unique unless user specifies so. User would have an option to exclude all places that he was already at from search
 
 monetisation: 
 	- Bars, restaurants etc could pay us to be featured 
