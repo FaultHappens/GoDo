@@ -27,16 +27,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -63,7 +65,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil.ImageLoader
-import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.dmtsk.godo.BuildConfig
@@ -78,6 +80,10 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapEffect
 import com.google.maps.android.compose.MapProperties
@@ -90,6 +96,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.sign
 
 @AndroidEntryPoint
@@ -102,16 +111,18 @@ class MainActivity : ComponentActivity()
 		super.onCreate(savedInstanceState)
 		setContent {
 			GoDoTheme {
-				GoDoMapScreen()
+				Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+					GoDoMapScreen(innerPadding)
+				}
 			}
 		}
 	}
 	
 	@OptIn(ExperimentalPermissionsApi::class, MapsComposeExperimentalApi::class)
 	@Composable
-	fun GoDoMapScreen()
+	fun GoDoMapScreen(innerPaddingValues: PaddingValues)
 	{
-		var loading by remember { mutableStateOf(false) }
+		var loading by remember { mutableStateOf(true) }
 		val cameraPositionState = rememberCameraPositionState()
 		var hasMovedCamera by remember { mutableStateOf(false) }
 		var hasMovedCameraAfterAdventureFound by remember { mutableStateOf(false) }
@@ -120,11 +131,39 @@ class MainActivity : ComponentActivity()
 		var showFindAdventureDialog by remember { mutableStateOf(true) }
 		val adventure by viewModel.adventureFlow.collectAsState()
 		var adventureFound by remember { mutableStateOf(false) }
+		var fetchedUserAdventureHistory by remember { mutableStateOf(false) }
+		
+		val user = Firebase.auth.currentUser
+		val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+		val currentDate = dateFormat.format(Date())
+		val db = FirebaseFirestore.getInstance()
+		val uid = Firebase.auth.currentUser?.uid
 		
 		val uiSettings = remember {
 			MapUiSettings(
 				myLocationButtonEnabled = false,
 				zoomControlsEnabled = false
+			)
+		}
+		if (!fetchedUserAdventureHistory && userLocation != null)
+		{
+			fetchedUserAdventureHistory = true
+			fetchUserAdventureHistory(
+				onSuccess = { history ->
+					history.forEach { (date, placeId) ->
+						if (date == currentDate)
+						{
+							viewModel.getAdventureInfo(placeId)
+							showFindAdventureDialog = false
+							return@fetchUserAdventureHistory
+						}
+					}
+					loading = false
+				},
+				onFailure = { error ->
+					loading = false
+					Log.e("Firestore", "Failed to fetch history", error)
+				}
 			)
 		}
 		
@@ -137,6 +176,21 @@ class MainActivity : ComponentActivity()
 			adventure?.let {
 				adventureFound = true
 				loading = false
+				
+				if (uid != null)
+				{
+					val updateMap = mapOf(currentDate to adventure!!.placeId)
+					
+					db.collection("users").document(uid)
+						.set(updateMap, SetOptions.merge())
+						.addOnSuccessListener {
+							Log.d("Firestore", "Document successfully written!")
+						}
+						.addOnFailureListener { e ->
+							Log.w("Firestore", "Error writing document", e)
+						}
+				}
+				
 			}
 		}
 		
@@ -161,8 +215,19 @@ class MainActivity : ComponentActivity()
 			}
 		}
 		
-		Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-			
+		
+		
+		
+		
+		
+		
+		
+		
+		Surface(
+			modifier = Modifier
+				.fillMaxSize()
+				.padding(innerPaddingValues), color = MaterialTheme.colorScheme.background
+		) {
 			Box(
 				modifier = Modifier
 					.fillMaxSize()
@@ -172,21 +237,6 @@ class MainActivity : ComponentActivity()
 					modifier = Modifier
 						.fillMaxSize()
 				) {
-					if (loading)
-					{
-						Box(
-							modifier = Modifier
-								.fillMaxSize()
-								.background(Color.Black.copy(alpha = 0.5f))
-								.zIndex(1f),
-							contentAlignment = Alignment.Center
-						) {
-							CircularProgressIndicator(
-								color = Color.White,
-								strokeWidth = 4.dp
-							)
-						}
-					}
 					GoogleMap(
 						modifier = Modifier.fillMaxSize(),
 						cameraPositionState = cameraPositionState,
@@ -204,7 +254,7 @@ class MainActivity : ComponentActivity()
 									.include(userLocation!!)
 									.build()
 								
-								val padding = 100
+								val padding = 300
 								
 								cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(bounds, padding))
 								hasMovedCameraAfterAdventureFound = true
@@ -247,7 +297,33 @@ class MainActivity : ComponentActivity()
 							}
 						}
 					}
+					CircularImageFab(
+						imageUrl = user!!.photoUrl.toString(),
+						modifier = Modifier
+							.align(Alignment.TopEnd)
+							.padding(top = 16.dp, end = 16.dp),
+						onClick = {
+						
+						}
+					)
+					if (loading)
+					{
+						Box(
+							modifier = Modifier
+								.fillMaxSize()
+								.background(Color.Black.copy(alpha = 0.5f))
+								.zIndex(1f),
+							contentAlignment = Alignment.Center
+						) {
+							CircularProgressIndicator(
+								color = Color.White,
+								strokeWidth = 4.dp
+							)
+						}
+					}
 				}
+				
+				
 				
 				if (adventureFound && adventure != null)
 				{
@@ -266,8 +342,12 @@ class MainActivity : ComponentActivity()
 						LaunchedEffect(adventure!!.photos) {
 							adventure!!.photos.forEachIndexed { index, photo ->
 								launch {
-									val bitmap = loadBitmapAsync("https://maps.googleapis.com/maps/api/place/photo?maxwidth=300&photoreference=${photo
-										.photoReference}&key=${BuildConfig.MAPS_API_KEY}", imageLoader, context)
+									val bitmap = loadBitmapAsync(
+										"https://maps.googleapis.com/maps/api/place/photo?maxwidth=300&photoreference=${
+											photo
+												.photoReference
+										}&key=${BuildConfig.MAPS_API_KEY}", imageLoader, context
+									)
 									bitmaps[index] = bitmap
 								}
 							}
@@ -285,7 +365,8 @@ class MainActivity : ComponentActivity()
 									contentAlignment = Alignment.Center
 								) {
 									val bitmap = bitmaps.getOrNull(index)
-									if (bitmap != null) {
+									if (bitmap != null)
+									{
 										Image(
 											contentScale = ContentScale.Crop,
 											modifier = Modifier
@@ -294,7 +375,8 @@ class MainActivity : ComponentActivity()
 											bitmap = bitmap.asImageBitmap(),
 											contentDescription = null,
 										)
-									} else {
+									} else
+									{
 										CircularProgressIndicator(modifier = Modifier.size(24.dp))
 									}
 								}
@@ -303,6 +385,66 @@ class MainActivity : ComponentActivity()
 					}
 				}
 			}
+		}
+		
+		
+	}
+	
+	private fun fetchUserAdventureHistory(
+		onSuccess: (Map<String, String>) -> Unit,
+		onFailure: (Exception) -> Unit
+	)
+	{
+		val db = FirebaseFirestore.getInstance()
+		val uid = Firebase.auth.currentUser?.uid
+		
+		if (uid != null)
+		{
+			val userDocRef = db.collection("users").document(uid)
+			
+			userDocRef.get()
+				.addOnSuccessListener { document ->
+					if (document != null && document.exists())
+					{
+						// Safely cast data to Map<String, String>
+						val data = document.data?.mapValues { it.value.toString() } ?: emptyMap()
+						onSuccess(data)
+					} else
+					{
+						onSuccess(emptyMap()) // No document = no history
+					}
+				}
+				.addOnFailureListener { exception ->
+					onFailure(exception)
+				}
+		} else
+		{
+			onFailure(Exception("User not authenticated"))
+		}
+	}
+	
+	
+	@Composable
+	fun CircularImageFab(
+		imageUrl: String,
+		onClick: () -> Unit,
+		modifier: Modifier = Modifier
+	)
+	{
+		FloatingActionButton(
+			onClick = onClick,
+			shape = CircleShape,
+			containerColor = MaterialTheme.colorScheme.primary,
+			modifier = modifier.size(46.dp)
+		) {
+			Image(
+				painter = rememberAsyncImagePainter(model = imageUrl),
+				contentDescription = null,
+				contentScale = ContentScale.Crop,
+				modifier = Modifier
+					.size(36.dp)
+					.clip(CircleShape)
+			)
 		}
 	}
 	
@@ -422,16 +564,20 @@ class MainActivity : ComponentActivity()
 		loader: ImageLoader,
 		context: android.content.Context
 	): Bitmap? = withContext(Dispatchers.IO) {
-		try {
+		try
+		{
 			val request = ImageRequest.Builder(context)
 				.data(url)
 				.allowHardware(false)
 				.build()
 			val result = loader.execute(request)
-			if (result is SuccessResult) {
+			if (result is SuccessResult)
+			{
 				return@withContext (result.drawable as android.graphics.drawable.BitmapDrawable).bitmap
 			}
-		} catch (_: Exception) {}
+		} catch (_: Exception)
+		{
+		}
 		null
 	}
 	

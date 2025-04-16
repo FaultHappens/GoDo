@@ -94,8 +94,6 @@ class MainActivityViewModel @Inject constructor(
 			val randomPlaceAdditionalInfo = getGooglePlaceDetailedInfoUseCase.invoke(GooglePlaceDetailedInfoRequest(randomPlace.placeId))
 			_adventureFlow.value = randomPlaceAdditionalInfo.result
 		}
-		
-		
 	}
 	
 	private fun getRandomType(): String
@@ -125,5 +123,13 @@ class MainActivityViewModel @Inject constructor(
 		}
 		
 		return returnList
+	}
+	
+	fun getAdventureInfo(placeId: String)
+	{
+		viewModelScope.launch {
+			val randomPlaceAdditionalInfo = getGooglePlaceDetailedInfoUseCase.invoke(GooglePlaceDetailedInfoRequest(placeId))
+			_adventureFlow.value = randomPlaceAdditionalInfo.result
+		}
 	}
 }

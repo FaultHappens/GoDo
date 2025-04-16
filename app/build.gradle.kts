@@ -1,9 +1,11 @@
 plugins {
 	alias(libs.plugins.androidApplication)
 	alias(libs.plugins.jetbrainsKotlinAndroid)
+	id("com.google.gms.google-services")
 	id("kotlin-kapt")
 	id("com.google.dagger.hilt.android")
 	id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.1"
+	alias(libs.plugins.kotlinCompose)
 }
 
 secrets {
@@ -45,11 +47,11 @@ android {
 		}
 	}
 	compileOptions {
-		sourceCompatibility = JavaVersion.VERSION_1_8
-		targetCompatibility = JavaVersion.VERSION_1_8
+		sourceCompatibility = JavaVersion.VERSION_11
+		targetCompatibility = JavaVersion.VERSION_11
 	}
 	kotlinOptions {
-		jvmTarget = "1.8"
+		jvmTarget = "11"
 	}
 	buildFeatures {
 		compose = true
@@ -104,6 +106,14 @@ dependencies {
 	
 	//Coil image loading library
 	implementation(libs.coil.compose)
+	
+	//Firebase
+	implementation(platform(libs.firebase.bom))
+	implementation(libs.firebase.auth)
+	implementation(libs.androidx.credentials)
+	implementation(libs.androidx.credentials.play.services.auth)
+	implementation(libs.googleid)
+	implementation(libs.firebase.firestore.ktx)
 	
 	testImplementation(libs.junit)
 	androidTestImplementation(libs.androidx.junit)

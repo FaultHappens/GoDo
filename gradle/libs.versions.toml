@@ -2,9 +2,14 @@
 accompanistPermissions = "0.34.0"
 agp = "8.9.1"
 coilCompose = "2.5.0"
+composeGoogleSignin = "1.0.0"
 converterGson = "2.11.0"
+credentialsPlayServicesAuth = "1.5.0"
+credentials = "1.5.0"
+firebaseBom = "33.12.0"
+googleid = "1.1.1"
 hiltAndroid = "2.51.1"
-kotlin = "1.9.0"
+kotlin = "2.1.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
@@ -15,6 +20,7 @@ composeBom = "2023.08.00"
 loggingInterceptor = "4.12.0"
 mapsCompose = "6.4.1"
 okhttp = "4.12.0"
+playServicesAuth = "21.3.0"
 playServicesLocation = "21.0.1"
 retrofit = "2.11.0"
 secretsGradlePlugin = "2.0.1"
@@ -25,8 +31,14 @@ constraintlayout = "2.2.1"
 [libraries]
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
+firebase-auth = { module = "com.google.firebase:firebase-auth" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -55,4 +67,5 @@ androidx-constraintlayout = { group = "androidx.constraintlayout", name = "const
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 jetbrainsKotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 googleAndroidLibrariesMapsplatformSecretsGradlePlugin = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "googleAndroidLibrariesMapsplatformSecretsGradlePlugin" }
+kotlinCompose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
