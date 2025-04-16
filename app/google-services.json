@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "669046186697",
+    "project_id": "godo-8a2ba",
+    "storage_bucket": "godo-8a2ba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:669046186697:android:75a912f7a3c4247c17a318",
+        "android_client_info": {
+          "package_name": "com.dmtsk.godo"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "669046186697-frbm9tj5hptdv8loe28r21hs9dudbqg4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dmtsk.godo",
+            "certificate_hash": "03497f93442fe4fff28d4ee9c773ec1069d9b68b"
+          }
+        },
+        {
+          "client_id": "669046186697-5krt2aa6ietg9569shinr6ucf4e6oel6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBM9H0q_Htxputy5pTinwAj5tI8Azn35Pw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "669046186697-5krt2aa6ietg9569shinr6ucf4e6oel6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
