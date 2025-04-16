@@ -2,27 +2,33 @@ package com.dmtsk.godo.ui.screens.mainscreen.activity
 
 import android.Manifest
 import android.content.res.Resources
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -38,19 +44,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import coil.ImageLoader
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import com.dmtsk.godo.BuildConfig
 import com.dmtsk.godo.R
+import com.dmtsk.godo.domain.model.GooglePlaceModel
 import com.dmtsk.godo.ui.screens.mainscreen.viewmodel.MainActivityViewModel
 import com.dmtsk.godo.ui.theme.GoDoTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -69,7 +87,9 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.sign
 
 @AndroidEntryPoint
@@ -117,7 +137,6 @@ class MainActivity : ComponentActivity()
 			adventure?.let {
 				adventureFound = true
 				loading = false
-				Toast.makeText(this@MainActivity, "ADVENTURE FOUND", Toast.LENGTH_LONG).show()
 			}
 		}
 		
@@ -139,7 +158,6 @@ class MainActivity : ComponentActivity()
 					hasMovedCamera = true
 					
 				}
-				Log.d("LOCATION", latLng.toString())
 			}
 		}
 		
@@ -159,8 +177,8 @@ class MainActivity : ComponentActivity()
 						Box(
 							modifier = Modifier
 								.fillMaxSize()
-								.background(Color.Black.copy(alpha = 0.5f)) // semi-transparent overlay
-								.zIndex(1f), // keep it above other content
+								.background(Color.Black.copy(alpha = 0.5f))
+								.zIndex(1f),
 							contentAlignment = Alignment.Center
 						) {
 							CircularProgressIndicator(
@@ -186,7 +204,7 @@ class MainActivity : ComponentActivity()
 									.include(userLocation!!)
 									.build()
 								
-								val padding = 100 // pixels of padding around edges
+								val padding = 100
 								
 								cameraPositionState.move(CameraUpdateFactory.newLatLngBounds(bounds, padding))
 								hasMovedCameraAfterAdventureFound = true
@@ -231,11 +249,56 @@ class MainActivity : ComponentActivity()
 					}
 				}
 				
-				if (adventureFound)
+				if (adventureFound && adventure != null)
 				{
-					ExpandableBottomSheet {
-						repeat(50) {
-							Text("Item $it", modifier = Modifier.padding(16.dp))
+					ExpandableBottomSheet(adventure!!) {
+						val context = LocalContext.current
+						val imageLoader = ImageLoader(context)
+						
+						val bitmaps = remember {
+							mutableStateListOf<Bitmap?>().apply {
+								repeat(adventure!!.photos.size) {
+									add(null)
+								}
+							}
+						}
+						
+						LaunchedEffect(adventure!!.photos) {
+							adventure!!.photos.forEachIndexed { index, photo ->
+								launch {
+									val bitmap = loadBitmapAsync("https://maps.googleapis.com/maps/api/place/photo?maxwidth=300&photoreference=${photo
+										.photoReference}&key=${BuildConfig.MAPS_API_KEY}", imageLoader, context)
+									bitmaps[index] = bitmap
+								}
+							}
+						}
+						
+						LazyRow(
+							contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+							horizontalArrangement = Arrangement.spacedBy(12.dp)
+						) {
+							itemsIndexed(adventure!!.photos) { index, _ ->
+								Box(
+									modifier = Modifier
+										.size(150.dp)
+										.clip(RoundedCornerShape(12.dp)),
+									contentAlignment = Alignment.Center
+								) {
+									val bitmap = bitmaps.getOrNull(index)
+									if (bitmap != null) {
+										Image(
+											contentScale = ContentScale.Crop,
+											modifier = Modifier
+												.size(150.dp)
+												.clip(RoundedCornerShape(12.dp)),
+											bitmap = bitmap.asImageBitmap(),
+											contentDescription = null,
+										)
+									} else {
+										CircularProgressIndicator(modifier = Modifier.size(24.dp))
+									}
+								}
+							}
 						}
 					}
 				}
@@ -245,8 +308,9 @@ class MainActivity : ComponentActivity()
 	
 	@Composable
 	fun ExpandableBottomSheet(
+		adventure: GooglePlaceModel,
 		modifier: Modifier = Modifier,
-		snapPoints: List<Float> = listOf(0.1f, 0.4f, 0.95f), // as fraction of screen height
+		snapPoints: List<Float> = listOf(0.1f, 0.4f, 0.95f),
 		initialSnapIndex: Int = 0,
 		content: @Composable ColumnScope.() -> Unit
 	)
@@ -265,7 +329,7 @@ class MainActivity : ComponentActivity()
 		val dragState = rememberDraggableState { delta ->
 			dragDeltaTotal += delta
 			scope.launch {
-				val newHeight = (animatableHeight.value - delta) // ✅ CORRECT: minus to match finger
+				val newHeight = (animatableHeight.value - delta)
 					.coerceIn(snapPointsPx.first(), snapPointsPx.last())
 				animatableHeight.snapTo(newHeight)
 			}
@@ -274,7 +338,7 @@ class MainActivity : ComponentActivity()
 			modifier = Modifier
 				.fillMaxSize()
 				.zIndex(1f),
-			contentAlignment = Alignment.BottomCenter // important to anchor at bottom
+			contentAlignment = Alignment.BottomCenter
 		) {
 			Box(
 				modifier = modifier
@@ -288,16 +352,14 @@ class MainActivity : ComponentActivity()
 				Column(
 					modifier = Modifier.fillMaxSize()
 				) {
-					// Drag handle
 					Box(
 						modifier = Modifier
 							.fillMaxWidth()
-							.height(30.dp)
 							.draggable(
 								orientation = Orientation.Vertical,
 								state = dragState,
 								onDragStopped = {
-									val direction = (-dragDeltaTotal).sign // Invert for correct snapping behavior
+									val direction = (-dragDeltaTotal).sign
 									val nextIndex = when
 									{
 										direction < 0 -> maxOf(0, currentSnapIndex - 1)
@@ -315,20 +377,28 @@ class MainActivity : ComponentActivity()
 									}
 								}
 							)
-							.pointerInput(Unit) {
-								// Needed to prevent scroll intercept from scrollable content below
-							}
+							.pointerInput(Unit) {}
 					) {
-						// Decorative handle inside drag area
-						Box(
+						Column(
 							modifier = Modifier
-								.align(Alignment.Center)
-								.size(width = 80.dp, height = 4.dp)
-								.background(Color.Gray, RoundedCornerShape(2.dp))
-						)
+								.fillMaxWidth()
+								.padding(horizontal = 10.dp)
+						) {
+							Box(
+								modifier = Modifier
+									.align(Alignment.CenterHorizontally)
+									.padding(10.dp)
+									.size(width = 80.dp, height = 4.dp)
+									.background(Color.Gray, RoundedCornerShape(2.dp))
+							)
+							Text(
+								text = stringResource(R.string.congrats_you_are_going_to, adventure.name),
+								modifier = Modifier
+									.align(Alignment.CenterHorizontally)
+							)
+						}
 					}
 					
-					// Scrollable content
 					Column(
 						modifier = Modifier
 							.fillMaxSize()
@@ -347,6 +417,24 @@ class MainActivity : ComponentActivity()
 		viewModel.findAdventure(location)
 	}
 	
+	private suspend fun loadBitmapAsync(
+		url: String,
+		loader: ImageLoader,
+		context: android.content.Context
+	): Bitmap? = withContext(Dispatchers.IO) {
+		try {
+			val request = ImageRequest.Builder(context)
+				.data(url)
+				.allowHardware(false)
+				.build()
+			val result = loader.execute(request)
+			if (result is SuccessResult) {
+				return@withContext (result.drawable as android.graphics.drawable.BitmapDrawable).bitmap
+			}
+		} catch (_: Exception) {}
+		null
+	}
+	
 	
 	@Composable
 	private fun FindAdventureDialog(onClick: () -> Unit)
@@ -355,7 +443,7 @@ class MainActivity : ComponentActivity()
 			modifier = Modifier
 				.size(width = 350.dp, height = 225.dp),
 			colors = CardDefaults.cardColors(
-				containerColor = Color(0xFFFFFFFF) // Light blue
+				containerColor = Color(0xFFFFFFFF)
 			),
 			shape = RoundedCornerShape(16.dp),
 		) {

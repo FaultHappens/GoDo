@@ -110,7 +110,7 @@ class MainActivityViewModel @Inject constructor(
 		var response = getAllGooglePlacesNearbyUseCase.invoke(
 			googlePlacesNearbySearchRequest = GooglePlacesNearbySearchRequest(
 				location = "${location.latitude},${location.longitude}",
-				radius = 15000,
+				radius = 1500,
 				type = type
 			)
 		)

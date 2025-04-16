@@ -102,6 +102,9 @@ dependencies {
 	implementation (libs.retrofit)
 	implementation (libs.converter.gson)
 	
+	//Coil image loading library
+	implementation(libs.coil.compose)
+	
 	testImplementation(libs.junit)
 	androidTestImplementation(libs.androidx.junit)
 	androidTestImplementation(libs.androidx.espresso.core)
